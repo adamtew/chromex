@@ -1,4 +1,4 @@
-defmodule ChromeDebugger do
+defmodule Debugger do
   use WebSockex
   require Logger
 
