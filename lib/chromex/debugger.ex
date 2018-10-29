@@ -1,6 +1,7 @@
 defmodule Debugger do
   use WebSockex
   require Logger
+  alias Chromex.Id
 
   @moduledoc ~S"""
   Sample usage connecting to a devtools remote-debugging page to orchestrate the browser and receive network events on the socket directly.

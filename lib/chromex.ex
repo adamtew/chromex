@@ -3,6 +3,9 @@ defmodule Chromex do
   Documentation for Chromex.
   """
 
+  def start do
+  end
+
   def get do
     HTTPoison.get!("http://localhost:9516/json")
     |> Map.get(:body)
