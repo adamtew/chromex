@@ -7,7 +7,7 @@ defmodule Debugger do
   Example Usage With a Chrome Remote Debugging Enabled Instance (or driver), and using Poison to decode/encode the remote-protocol message passing (assuming you have started chrome with a remote debugging port 55171, and have the WebSocket address for the page/tab in question)
 
   ```
-  ChromeDebugger.start("ws://127.0.0.1:55171/devtools/page/18569def-3e03-4d67-a5b9-ca6a0ee0db77", %{port: 55171})
+  Debugger.start("ws://127.0.0.1:55171/devtools/page/18569def-3e03-4d67-a5b9-ca6a0ee0db77", %{port: 55171})
   ```
   """
      

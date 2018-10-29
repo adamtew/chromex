@@ -8,9 +8,6 @@ defmodule Chromex do
     |> Map.get(:body)
     |> Poison.decode!
     |> List.first()
-    # |> Map.get("id")
-    # |> Map.get"webSocketDebuggerUrl")
-
   end
 
   def socket() do
