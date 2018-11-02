@@ -22,7 +22,7 @@ defmodule Chromex.MixProject do
   defp deps do
     [
       {:httpoison, "~> 1.4.0"},
-      {:poison, "~> 4.0.1"},
+      {:poison, "~> 3.0"},
       {:websockex, "~> 0.4.1"},
       {:floki, "~> 0.20.4"}
       # {:dep_from_hexpm, "~> 0.3.0"},
