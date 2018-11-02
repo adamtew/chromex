@@ -1,7 +1,9 @@
-defmodule Debugger do
+defmodule Chromex.Debugger do
   use WebSockex
   require Logger
   alias Chromex.Id
+  alias Chromex.WebSocketServer
+  alias Chromex.ResponseServer
 
   @moduledoc ~S"""
   Sample usage connecting to a devtools remote-debugging page to orchestrate the browser and receive network events on the socket directly.
@@ -22,24 +24,113 @@ defmodule Debugger do
     {:ok, pid}
   end
 
-  def navigate_to(pid, url) do
+  def enable_page() do
+    id = Id.use()
     payload = %{
-      id: 1,
+      id: id,
+      method: "Page.enable",
+      params: %{}
+    }
+    |> Poison.encode!()
+    WebSockex.send_frame(WebSocketServer.get_pid(), {:text, payload})
+    wait_for_response(id)
+  end
+
+  def navigate_to(url) do
+    id = Id.use()
+    payload = %{
+      id: id,
       method: "Page.navigate",
       params: %{url: url}
     }
     |> Poison.encode!()
-    WebSockex.send_frame(pid, {:text, payload})
+    WebSockex.send_frame(WebSocketServer.get_pid(), {:text, payload})
+    wait_for_response(id)
   end
 
-  def get_html(pid) do
+  def wait_for_page_load() do
+    :timer.sleep(2000)
+  end
+
+  def get_html() do
+    id = Id.use()
     payload = %{
-      id: 1,
+      id: id,
       method: "Runtime.evaluate",
       params: %{expression: "document.documentElement.outerHTML"}
     }
     |> Poison.encode!()
-    WebSockex.send_frame(pid, {:text, payload})
+    WebSockex.send_frame(WebSocketServer.get_pid(), {:text, payload})
+    wait_for_response(id)
+  end
+
+  @timeout_script "setTimeout(function(){document.write('something')}, 5000);"
+  @delete_script "delete window.navigator['webdriver'];"
+  @override_getter_script  "Object.defineProperty(navigator, 'webdriver', { get: () => undefined,});"
+  @set_undefined_script  "Object.defineProperty(navigator, 'webdriver', undefined);"
+  @verify "setTimeout(function(){console.log('injected')}, 5000);"
+  @script "#{@override_getter_script};#{@verify}"
+  # @script "setTimeout(function(){document.write('something')}, 5000)"
+  # @script "window.navigator.webdriver = false"
+  def inject_js() do
+    id = Id.use()
+    payload = %{
+      id: id,
+      method: "Page.addScriptToEvaluateOnNewDocument",
+      params: %{source: @script}
+    }
+    |> Poison.encode!()
+    WebSockex.send_frame(WebSocketServer.get_pid(), {:text, payload})
+    wait_for_response(id)
+  end
+
+  def check_webdriver() do
+    id = Id.use()
+    payload = %{
+      id: id,
+      method: "Runtime.evaluate",
+      params: %{expression: "window.navigator.webdriver"}
+    }
+    |> Poison.encode!()
+    WebSockex.send_frame(WebSocketServer.get_pid(), {:text, payload})
+    wait_for_response(id)
+  end
+
+  def run_js(js) do
+    id = Id.use()
+    payload = %{
+      id: id,
+      method: "Runtime.evaluate",
+      params: %{expression: js}
+    }
+    |> Poison.encode!()
+    WebSockex.send_frame(WebSocketServer.get_pid(), {:text, payload})
+    wait_for_response(id)
+  end
+
+  def screenshot() do
+    id = Id.use()
+    filepath = "/Users/adamtew/git/adamtew/chromex/#{id}"
+    payload = %{
+      id: id,
+      method: "Page.captureScreenshot",
+      params: %{}
+    }
+    |> Poison.encode!()
+    WebSockex.send_frame(WebSocketServer.get_pid(), {:text, payload})
+    response = wait_for_response(id)
+    img = response["result"]["data"]
+    File.write(filepath, img)
+  end
+
+  def wait_for_response(id) do
+    case ResponseServer.get_response(id) do
+      nil ->
+        :timer.sleep(1000)
+        wait_for_response(id)
+      response -> response
+    end
+
   end
 
   def command(pid, id, method, params \\ %{}) do
@@ -52,25 +143,20 @@ defmodule Debugger do
   end
 
   def handle_frame({_type, msg}, state) do
-    require IEx; IEx.pry
-    case Poison.decode(msg) do
-      {:error, error} ->
-        Logger.debug(inspect msg)
-        Logger.error(inspect error)
-      {:ok, message} ->
-        case message["method"] do
-          "Network.webSocketFrameReceived" ->
-            with true <- message["params"]["response"]["opcode"] == 1,
-                 message_pl <- message["params"]["response"]["payloadData"]
-              do
-              IO.puts("Message from remote-debbuging port #{state.port}: #{inspect message_pl}")
-              else
-                _ -> :ok
-            end
-          _ -> :ok
-        end
-    end
-    {:ok, state}
+    item = Poison.decode!(msg)
+    return_value = check_response_type(item)
+    ResponseServer.store_response(item["id"], return_value)
+    {:ok, return_value}
+  end
+
+  def check_response_type(%{"result" => %{"result" => %{"type" => "string", "value" => value}}}) do
+    value
+  end
+  def check_response_type(%{"result" => %{"frameId" => frame_id}}) do
+    frame_id
+  end
+  def check_response_type(msg) do
+    msg
   end
   
 end
