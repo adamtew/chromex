@@ -1,7 +1,7 @@
 defmodule Chromex.Id do
   use Agent
 
-  def start_link(_) do
+  def start_link() do
     Agent.start_link(fn -> 1 end, name: __MODULE__)
   end
 
@@ -10,7 +10,6 @@ defmodule Chromex.Id do
     increment_id()
     id
   end
-
 
   def current_id() do
     Agent.get(__MODULE__, fn id -> id end)

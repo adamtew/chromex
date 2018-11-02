@@ -1,7 +1,7 @@
 defmodule Chromex.WebSocketServer do
   use WebSockex
-  def start_link(url, state) do
-    {:ok, pid} = WebSockex.start(url, __MODULE__, state)
+  alias Chromex.Id
+  def start_link(pid) do
     Agent.start_link(fn -> pid end, name: __MODULE__)
   end
 
