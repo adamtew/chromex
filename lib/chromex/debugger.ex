@@ -49,7 +49,9 @@ defmodule Chromex.Debugger do
   end
 
   def wait_for_page_load() do
-    :timer.sleep(2000)
+    # This may be really useful
+    # https://chromedevtools.github.io/devtools-protocol/tot/Network#event-loadingFinished
+    :timer.sleep(3000)
   end
 
   def get_html() do
